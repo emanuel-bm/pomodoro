@@ -19,6 +19,27 @@
 
 ---
 
+## Component Folder Structure
+
+- **Components** follow the same folder pattern as screens.
+- Each component folder contains:
+  - `index.tsx` – the component (default export)
+  - `styles.ts` – `StyleSheet.create(...)` styles
+  - `_consts.ts` – (optional) constants used by the component
+- Example: `src/components/Alert/index.tsx`, `Alert/styles.ts`, `Alert/_consts.ts`
+- Import as: `import { AlertProvider, useAlert } from './src/components/Alert'`
+
+---
+
+## Alerts
+
+- **Do not use** the native `Alert` from React Native.
+- **Use** the custom `Alert` component from `src/components/Alert`.
+- Use the `useAlert` hook: `const { alert } = useAlert(); alert({ title, message, buttons });`
+- Ensure `AlertProvider` wraps the app (in `App.tsx`).
+
+---
+
 ## Time and Duration
 
 - **Always handle seconds**, not only minutes. Store and display durations in seconds everywhere except the time settings screen.

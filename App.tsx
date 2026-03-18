@@ -3,6 +3,7 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from './src/context/AppContext';
+import { AlertProvider } from './src/components/Alert';
 import { Icon } from './src/components/ui/Icon';
 import TimerScreen from './src/screens/TimerScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
@@ -41,7 +42,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <NavigationContainer theme={theme}>
+        <AlertProvider>
+          <NavigationContainer theme={theme}>
           <Tab.Navigator
             screenOptions={{
               headerStyle: { backgroundColor: '#1a1a2e' },
@@ -80,8 +82,9 @@ export default function App() {
               }}
             />
           </Tab.Navigator>
-        </NavigationContainer>
-        <StatusBar style="light" />
+          </NavigationContainer>
+          <StatusBar style="light" />
+        </AlertProvider>
       </AppProvider>
     </SafeAreaProvider>
   );

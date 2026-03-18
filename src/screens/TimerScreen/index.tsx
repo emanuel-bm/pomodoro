@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { getCycleLabel, getCycleProgress } from '../../cycleLogic';
 import { styles } from './styles';
@@ -36,30 +31,8 @@ export default function TimerScreen() {
   );
   const cycleLabel = getCycleLabel(timerState.cycleType);
 
-  const handleFinishOvertime = (recordOvertime: boolean) => {
-    finishCycle(recordOvertime);
-  };
-
   const handleFinish = () => {
-    if (isOvertime) {
-      Alert.alert(
-        'Finish Cycle',
-        'How would you like to record this session?',
-        [
-          {
-            text: 'Planned time only',
-            onPress: () => handleFinishOvertime(false),
-          },
-          {
-            text: 'Planned + overtime',
-            onPress: () => handleFinishOvertime(true),
-          },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
-    } else {
-      finishCycle(false);
-    }
+    finishCycle(false);
   };
 
   const displaySeconds = isOvertime ? elapsedSeconds - timerState.plannedDurationSeconds : remainingSeconds;
@@ -123,9 +96,24 @@ export default function TimerScreen() {
         )}
 
         {timerState.status === 'overtime' && (
-          <TouchableOpacity style={styles.primaryButton} onPress={handleFinish}>
-            <Text style={styles.primaryButtonText}>Finish Cycle</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => finishCycle(false)}
+            >
+              <Text style={styles.buttonText}>
+                Record {formatTime(timerState.plannedDurationSeconds)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => finishCycle(true)}
+            >
+              <Text style={styles.primaryButtonText}>
+                Record {formatTime(elapsedSeconds)} (overtime)
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>

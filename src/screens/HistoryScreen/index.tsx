@@ -1,12 +1,7 @@
 import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useApp } from '../../context/AppContext';
+import { useAlert } from '../../components/Alert';
 import type { HistoryEntry } from '../../types';
 import { getCycleLabel } from '../../cycleLogic';
 import { styles } from './styles';
@@ -73,6 +68,7 @@ function HistoryItem({
 
 export default function HistoryScreen() {
   const { history, deleteHistoryItem, refreshHistory } = useApp();
+  const { alert } = useAlert();
 
   useEffect(() => {
     refreshHistory();
@@ -109,10 +105,14 @@ export default function HistoryScreen() {
   );
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Entry', 'Remove this session from history?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteHistoryItem(id) },
-    ]);
+    alert({
+      title: 'Delete Entry',
+      message: 'Remove this session from history?',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteHistoryItem(id) },
+      ],
+    });
   };
 
   return (
