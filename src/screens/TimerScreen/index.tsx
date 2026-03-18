@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useApp } from '../../context/AppContext';
-import { getCycleLabel, getCycleProgress } from '../../cycleLogic';
-import { styles } from './styles';
+import { useApp } from '@/context/AppContext';
+import { getCycleLabel, getCycleProgress } from '@/cycleLogic';
+import { styles } from '@/screens/TimerScreen/styles';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);

@@ -1,4 +1,4 @@
-import type { CycleType } from './types';
+import type { CycleType } from '@/types';
 
 const CYCLE_SEQUENCE: CycleType[] = [
   'focus',

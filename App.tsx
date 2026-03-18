@@ -2,12 +2,12 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppProvider } from './src/context/AppContext';
-import { AlertProvider } from './src/components/Alert';
-import { Icon } from './src/components/ui/Icon';
-import TimerScreen from './src/screens/TimerScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
+import { AppProvider } from '@/context/AppContext';
+import { AlertProvider } from '@/components/Alert';
+import { Icon } from '@/components/ui/Icon';
+import TimerScreen from '@/screens/TimerScreen';
+import HistoryScreen from '@/screens/HistoryScreen';
+import SettingsScreen from '@/screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 

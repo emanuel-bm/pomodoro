@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Settings, HistoryEntry } from './types';
-import { DEFAULT_SETTINGS } from './types';
+import type { Settings, HistoryEntry } from '@/types';
+import { DEFAULT_SETTINGS } from '@/types';
 
 const SETTINGS_KEY = '@pomodoro/settings';
 const HISTORY_KEY = '@pomodoro/history';

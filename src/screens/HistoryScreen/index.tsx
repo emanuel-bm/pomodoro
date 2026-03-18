@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { useApp } from '../../context/AppContext';
-import { useAlert } from '../../components/Alert';
-import type { HistoryEntry } from '../../types';
-import { getCycleLabel } from '../../cycleLogic';
-import { styles } from './styles';
+import { useApp } from '@/context/AppContext';
+import { useAlert } from '@/components/Alert';
+import type { HistoryEntry } from '@/types';
+import { getCycleLabel } from '@/cycleLogic';
+import { styles } from '@/screens/HistoryScreen/styles';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);

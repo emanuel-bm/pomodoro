@@ -10,8 +10,8 @@ import { AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer } from 'expo-audio';
 import { useTimer } from 'react-timer-hook';
-import type { CycleType, HistoryEntry, Settings, TimerState, TimerStatus } from '../types';
-import { DEFAULT_SETTINGS } from '../types';
+import type { CycleType, HistoryEntry, Settings, TimerState, TimerStatus } from '@/types';
+import { DEFAULT_SETTINGS } from '@/types';
 import {
   loadHistory,
   loadSettings,
@@ -22,11 +22,11 @@ import {
   clearTimerState,
   addHistoryEntry,
   deleteHistoryEntry,
-} from '../storage';
+} from '@/storage';
 import {
   getNextCycleType,
   getPlannedDurationSeconds,
-} from '../cycleLogic';
+} from '@/cycleLogic';
 
 const TICK_INTERVAL_MS = 100;
 

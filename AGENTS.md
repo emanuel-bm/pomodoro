@@ -1,5 +1,14 @@
 # Agent Guidelines
 
+## Path Aliases
+
+- **Use** the `@/` alias for all imports from `src/`.
+- **Do not use** relative paths like `../../context/AppContext` when importing from `src/`.
+- Example: `import { useApp } from '@/context/AppContext'`, `import { Icon } from '@/components/ui/Icon'`
+- Files at project root (e.g. `App.tsx`) are imported with `./` (e.g. `import App from './App'`).
+
+---
+
 ## Timer Logic
 
 - **Use** `react-timer-hook` for countdown and stopwatch logic. Do not implement custom `setInterval`/`setTimeout` timers.
@@ -15,7 +24,7 @@
   - `index.tsx` – the screen component (default export)
   - `styles.ts` – `StyleSheet.create(...)` styles
 - Example: `src/screens/TimerScreen/index.tsx` and `src/screens/TimerScreen/styles.ts`
-- Import screens as: `import TimerScreen from './src/screens/TimerScreen'` (folder resolves to index.tsx)
+- Import screens as: `import TimerScreen from '@/screens/TimerScreen'` (folder resolves to index.tsx)
 
 ---
 
@@ -27,7 +36,7 @@
   - `styles.ts` – `StyleSheet.create(...)` styles
   - `_consts.ts` – (optional) constants used by the component
 - Example: `src/components/Alert/index.tsx`, `Alert/styles.ts`, `Alert/_consts.ts`
-- Import as: `import { AlertProvider, useAlert } from './src/components/Alert'`
+- Import as: `import { AlertProvider, useAlert } from '@/components/Alert'`
 
 ---
 
@@ -75,7 +84,7 @@
 ### Example
 
 ```tsx
-import { Icon } from '../components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 
 <Icon name="clock" width={24} height={24} color="#e94560" />
 <Icon name="settings" style={{ marginRight: 8 }} stroke="#fff" />

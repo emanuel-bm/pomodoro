@@ -8,8 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useApp } from '../../context/AppContext';
-import { styles } from './styles';
+import { useApp } from '@/context/AppContext';
+import { styles } from '@/screens/SettingsScreen/styles';
 
 const BOUNDS = {
   focusMinutes: { min: 1, max: 120 },

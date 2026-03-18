@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
-import { icons, type IconName } from '../../assets/icons';
+import { icons, type IconName } from '@/assets/icons';
 
 export interface IconProps extends Omit<SvgProps, 'style'> {
   name: IconName;

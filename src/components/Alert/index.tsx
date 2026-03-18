@@ -7,7 +7,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { styles } from './styles';
+import { styles } from '@/components/Alert/styles';
 
 export type AlertButtonStyle = 'default' | 'cancel' | 'destructive';
 
