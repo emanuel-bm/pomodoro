@@ -26,7 +26,15 @@ import {
 import {
   getNextCycleType,
   getPlannedDurationSeconds,
+  getCycleLabel,
 } from '@/cycleLogic';
+import {
+  showTimerNotification,
+  dismissTimerNotification,
+  setTimerNotificationHandlers,
+  setupNotificationResponseListener,
+  initNotifications,
+} from '@/notifications';
 
 const TICK_INTERVAL_MS = 100;
 
@@ -139,7 +147,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const state = timerStateRef.current;
     const now = Date.now() / 1000;
     if (state.status === 'overtime' && state.startedAt != null) {
-      return Math.floor(now - state.startedAt) + state.elapsedSeconds;
+      return Math.floor(now - state.startedAt);
     }
     if (state.status === 'paused' && state.pausedAt != null) {
       return state.elapsedSeconds;
@@ -149,7 +157,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
-  const isOvertime = timerState.status === 'overtime';
+  const isOvertime =
+    timerState.status === 'overtime' ||
+    (timerState.status === 'paused' &&
+      timerState.elapsedSeconds >= timerState.plannedDurationSeconds);
 
   useEffect(() => {
     loadSettings().then(setSettings);
@@ -178,15 +189,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadedFromPersistenceRef.current = false;
 
     const { status, startedAt, elapsedSeconds: elapsed, plannedDurationSeconds: planned } = timerState;
+    const isPausedOvertime = status === 'paused' && elapsed >= planned;
     if (status === 'running' && startedAt != null) {
       timer.restart(getExpiryForRunning(startedAt, planned), true);
-    } else if (status === 'paused') {
+    } else if (status === 'paused' && !isPausedOvertime) {
       timer.restart(getExpiryForPaused(elapsed, planned), false);
     }
   }, [timerState.status, timerState.startedAt, timerState.elapsedSeconds, timerState.plannedDurationSeconds, timer]);
 
   useEffect(() => {
-    if (timerState.status === 'running' || timerState.status === 'paused') {
+    const isPausedOvertime =
+      timerState.status === 'paused' &&
+      timerState.elapsedSeconds >= timerState.plannedDurationSeconds;
+    if (isPausedOvertime) {
+      setElapsedSeconds(timerState.elapsedSeconds);
+      setRemainingSeconds(0);
+    } else if (timerState.status === 'running' || timerState.status === 'paused') {
       setRemainingSeconds(timer.totalSeconds);
       setElapsedSeconds(timerState.plannedDurationSeconds - timer.totalSeconds);
     } else if (timerState.status === 'idle') {
@@ -203,6 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     timer.totalSeconds,
     timerState.status,
     timerState.plannedDurationSeconds,
+    timerState.elapsedSeconds,
     timerState.cycleType,
     settings.focusMinutes,
     settings.shortBreakMinutes,
@@ -263,7 +282,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [timerState.cycleType, timerState.currentFocusCount, settings, persistTimerState, timer]);
 
   const pauseCycle = useCallback(() => {
-    const elapsed = timerState.plannedDurationSeconds - timer.totalSeconds;
+    const elapsed =
+      timerState.status === 'overtime'
+        ? computeElapsedFromTimestamps()
+        : timerState.plannedDurationSeconds - timer.totalSeconds;
     const next: TimerState = {
       ...timerState,
       status: 'paused',
@@ -272,20 +294,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setTimerState(next);
     persistTimerState(next);
-    timer.pause();
-  }, [timerState, timer, persistTimerState]);
+    if (timerState.status !== 'overtime') {
+      timer.pause();
+    }
+  }, [timerState, timer, persistTimerState, computeElapsedFromTimestamps]);
 
   const resumeCycle = useCallback(() => {
+    const isResumingFromOvertime =
+      timerState.elapsedSeconds >= timerState.plannedDurationSeconds;
     const next: TimerState = {
       ...timerState,
-      status: 'running',
-      startedAt: Date.now() / 1000,
+      status: isResumingFromOvertime ? 'overtime' : 'running',
+      startedAt: Date.now() / 1000 - timerState.elapsedSeconds,
       pausedAt: null,
       elapsedSeconds: timerState.elapsedSeconds,
     };
     setTimerState(next);
     persistTimerState(next);
-    timer.resume();
+    if (!isResumingFromOvertime) {
+      timer.resume();
+    }
   }, [timerState, timer, persistTimerState]);
 
   const resetCycle = useCallback(() => {
@@ -301,10 +329,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const finishCycle = useCallback(
     (recordOvertime: boolean) => {
+      const isPausedOvertime =
+        timerState.status === 'paused' &&
+        timerState.elapsedSeconds >= timerState.plannedDurationSeconds;
       const elapsed =
         timerState.status === 'overtime'
           ? computeElapsedFromTimestamps()
-          : timerState.plannedDurationSeconds - timer.totalSeconds;
+          : isPausedOvertime
+            ? timerState.elapsedSeconds
+            : timerState.plannedDurationSeconds - timer.totalSeconds;
       const planned = timerState.plannedDurationSeconds;
       const recorded = recordOvertime ? elapsed : Math.min(elapsed, planned);
       const hadOvertime = elapsed > planned;
@@ -386,6 +419,97 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const h = await loadHistory();
     setHistory(h);
   }, []);
+
+  const pauseCycleRef = useRef(pauseCycle);
+  const resumeCycleRef = useRef(resumeCycle);
+  const finishCycleRef = useRef(finishCycle);
+  pauseCycleRef.current = pauseCycle;
+  resumeCycleRef.current = resumeCycle;
+  finishCycleRef.current = finishCycle;
+
+  useEffect(() => {
+    initNotifications();
+    setTimerNotificationHandlers({
+      onPause: () => pauseCycleRef.current(),
+      onResume: () => resumeCycleRef.current(),
+      onFinish: (recordOvertime) => finishCycleRef.current(recordOvertime),
+    });
+    const sub = setupNotificationResponseListener();
+    return () => {
+      setTimerNotificationHandlers(null);
+      sub();
+    };
+  }, []);
+
+  const notificationStateRef = useRef({
+    status: timerState.status,
+    cycleType: timerState.cycleType,
+    plannedDurationSeconds: timerState.plannedDurationSeconds,
+    startedAt: null as number | null,
+    elapsedSeconds: 0,
+    remainingSeconds: 0,
+    isOvertime: false,
+  });
+  notificationStateRef.current = {
+    status: timerState.status,
+    cycleType: timerState.cycleType,
+    plannedDurationSeconds: timerState.plannedDurationSeconds,
+    startedAt: timerState.startedAt,
+    elapsedSeconds,
+    remainingSeconds,
+    isOvertime,
+  };
+
+  useEffect(() => {
+    const isActive =
+      timerState.status === 'running' ||
+      timerState.status === 'paused' ||
+      timerState.status === 'overtime';
+    if (!isActive) {
+      dismissTimerNotification();
+      return;
+    }
+
+    const s = notificationStateRef.current;
+    const overtimeAmount = s.isOvertime
+      ? s.elapsedSeconds - s.plannedDurationSeconds
+      : 0;
+    const remainingDisplay = s.isOvertime ? overtimeAmount : s.remainingSeconds;
+
+    // Android uses native chronometer for live countdown — no polling needed.
+    // Pass timestamp so the system updates the display automatically.
+    let countdownEndTimestamp: number | undefined;
+    let overtimeStartTimestamp: number | undefined;
+
+    if (s.status === 'paused') {
+      // No chronometer when paused — static text
+    } else if (s.isOvertime && s.startedAt != null) {
+      overtimeStartTimestamp =
+        (s.startedAt + s.plannedDurationSeconds) * 1000;
+    } else {
+      countdownEndTimestamp = Date.now() + remainingDisplay * 1000;
+    }
+
+    showTimerNotification({
+      cycleLabel: getCycleLabel(s.cycleType),
+      remainingSeconds: remainingDisplay,
+      isOvertime: s.isOvertime,
+      isPaused: s.status === 'paused',
+      countdownEndTimestamp,
+      overtimeStartTimestamp,
+    }).catch((e) => console.warn('[Notification] update failed:', e));
+
+    return () => {
+      dismissTimerNotification();
+    };
+    // Only re-run when state that affects the notification changes.
+    // Chronometer updates live on Android — no need for elapsed/remaining in deps.
+  }, [
+    timerState.status,
+    timerState.startedAt,
+    timerState.cycleType,
+    timerState.plannedDurationSeconds,
+  ]);
 
   const value: AppContextValue = {
     settings,

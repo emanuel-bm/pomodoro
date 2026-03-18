@@ -71,4 +71,18 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  overtimeButton: {
+    width: '100%',
+    padding: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: '#2a1a2e',
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  overtimeButtonText: {
+    color: '#e94560',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

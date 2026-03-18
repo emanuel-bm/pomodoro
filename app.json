@@ -2,6 +2,7 @@
   "expo": {
     "name": "Pomodoro",
     "slug": "pomodoro",
+    "scheme": "pomodoro",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -13,7 +14,21 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#e94560"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": ["../../node_modules/@notifee/react-native/android/libs"]
+          }
+        }
+      ]
     ],
     "ios": {
       "bundleIdentifier": "com.pomodoro.app"

@@ -81,13 +81,13 @@ export default function TimerScreen() {
           </>
         )}
 
-        {timerState.status === 'paused' && (
+        {timerState.status === 'paused' && !isOvertime && (
           <>
             <TouchableOpacity style={styles.button} onPress={resumeCycle}>
               <Text style={styles.buttonText}>Resume</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={resetCycle}>
-              <Text style={styles.buttonText}>Reset</Text>
+              <Text style={styles.buttonText}>Restart</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.primaryButton} onPress={handleFinish}>
               <Text style={styles.primaryButtonText}>Finish</Text>
@@ -95,25 +95,40 @@ export default function TimerScreen() {
           </>
         )}
 
-        {timerState.status === 'overtime' && (
+        {isOvertime && timerState.status === 'overtime' && (
           <>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => finishCycle(false)}
-            >
-              <Text style={styles.buttonText}>
-                Record {formatTime(timerState.plannedDurationSeconds)}
-              </Text>
+            <TouchableOpacity style={styles.button} onPress={pauseCycle}>
+              <Text style={styles.buttonText}>Pause</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => finishCycle(true)}
-            >
-              <Text style={styles.primaryButtonText}>
-                Record {formatTime(elapsedSeconds)} (overtime)
-              </Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleFinish}>
+              <Text style={styles.primaryButtonText}>Finish</Text>
             </TouchableOpacity>
           </>
+        )}
+
+        {isOvertime && timerState.status === 'paused' && (
+          <>
+            <TouchableOpacity style={styles.button} onPress={resumeCycle}>
+              <Text style={styles.buttonText}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={resetCycle}>
+              <Text style={styles.buttonText}>Restart</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleFinish}>
+              <Text style={styles.primaryButtonText}>Finish</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {isOvertime && (
+          <TouchableOpacity
+            style={styles.overtimeButton}
+            onPress={() => finishCycle(true)}
+          >
+            <Text style={styles.overtimeButtonText}>
+              Record {formatTime(elapsedSeconds)} (with overtime)
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>

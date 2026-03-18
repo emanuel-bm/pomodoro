@@ -3,14 +3,14 @@ node_modules
 
 # Expo
 .expo
-dist/
-web-build/
+dist
+web-build
 
 # Build outputs
 *.tsbuildinfo
-build/
-android/app/build/
-ios/build/
+build
+android
+ios
 
 # Environment
 .env
@@ -28,16 +28,16 @@ bun-debug.log*
 .DS_Store
 Thumbs.db
 
-# IDE / Editor
-.idea/
-.vscode/
+# IDE  Editor
+.idea
+.vscode
 *.swp
 *.swo
 *~
 
 # Testing
-coverage/
-.nyc_output/
+coverage
+.nyc_output
 
 # Misc
 *.pem

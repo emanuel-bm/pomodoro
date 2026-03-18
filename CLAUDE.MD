@@ -131,8 +131,8 @@ When timer is paused:
 
 When timer is in overtime:
 
-* Finish cycle (record planned time)
-* Finish cycle (record total elapsed time)
+* Same controls as a normal cycle: **Pause** and **Finish** (when running), or **Resume**, **Restart**, and **Finish** (when paused)
+* An additional button below: **Record with overtime** – finishes the cycle and records the full elapsed time including overtime
 
 ---
 
@@ -193,6 +193,24 @@ Record planned duration only
 
 Option 2
 Record planned duration plus overtime
+
+---
+
+### Timer Notification (Business Rule)
+
+When a cycle is running, paused, or in overtime, a persistent notification is displayed showing:
+
+* Current cycle type (Focus / Short Break / Long Break)
+* Remaining time (countdown when inside planned duration, or overtime amount when past planned)
+
+The notification action buttons change based on the current timer state:
+
+* **When running or in overtime:** Pause + Finish
+* **When paused:** Resume + Finish
+
+**Finish during overtime:** If the user taps **Finish** while the cycle is in overtime, the app opens and the user must choose in the UI how to record the session (planned only or planned plus overtime). The notification does not finalize the cycle; it only redirects the user to the app.
+
+**Finish during normal time:** If the user taps **Finish** when inside the planned duration, the cycle is finished immediately and recorded with the elapsed time.
 
 ---
 
