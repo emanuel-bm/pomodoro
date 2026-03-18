@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Pomodoro",
+    "slug": "pomodoro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#1a1a2e"
+    },
+    "android": {
+      "package": "com.pomodoro.app"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-audio"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.pomodoro.app"
+    }
+  }
+}
