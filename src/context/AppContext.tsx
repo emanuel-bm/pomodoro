@@ -33,6 +33,7 @@ import {
   dismissTimerNotification,
   setTimerNotificationHandlers,
   setupNotificationResponseListener,
+  setupIOSTimerNotificationOpenListener,
   initNotifications,
 } from '@/notifications';
 
@@ -70,6 +71,20 @@ function getExpiryForRunning(startedAt: number, plannedSeconds: number): Date {
 function getExpiryForPaused(elapsedSeconds: number, plannedSeconds: number): Date {
   const remaining = plannedSeconds - elapsedSeconds;
   return new Date(Date.now() + remaining * 1000);
+}
+
+/** Matches react-timer-hook countdown display: ceil(ms left / 1s). */
+function remainingCountdownSeconds(startedAt: number, plannedSeconds: number): number {
+  const msLeft = (startedAt + plannedSeconds) * 1000 - Date.now();
+  return Math.max(0, Math.ceil(msLeft / 1000));
+}
+
+/** Whole seconds elapsed from wall clock while running (floor). */
+function elapsedRunningWallSeconds(startedAt: number, plannedSeconds: number): number {
+  return Math.min(
+    plannedSeconds,
+    Math.max(0, Math.floor(Date.now() / 1000 - startedAt))
+  );
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -204,9 +219,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (isPausedOvertime) {
       setElapsedSeconds(timerState.elapsedSeconds);
       setRemainingSeconds(0);
-    } else if (timerState.status === 'running' || timerState.status === 'paused') {
-      setRemainingSeconds(timer.totalSeconds);
-      setElapsedSeconds(timerState.plannedDurationSeconds - timer.totalSeconds);
+    } else if (timerState.status === 'paused') {
+      const e = timerState.elapsedSeconds;
+      setElapsedSeconds(e);
+      setRemainingSeconds(Math.max(0, timerState.plannedDurationSeconds - e));
     } else if (timerState.status === 'idle') {
       const planned = getPlannedDurationSeconds(
         timerState.cycleType,
@@ -217,8 +233,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setRemainingSeconds(planned);
       setElapsedSeconds(0);
     }
+    // running: wall-clock effect below (stays aligned with Date.now / react-timer-hook ceil)
   }, [
-    timer.totalSeconds,
     timerState.status,
     timerState.plannedDurationSeconds,
     timerState.elapsedSeconds,
@@ -227,6 +243,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings.shortBreakMinutes,
     settings.longBreakMinutes,
   ]);
+
+  useEffect(() => {
+    if (timerState.status !== 'running' || timerState.startedAt == null) {
+      return;
+    }
+    const { startedAt, plannedDurationSeconds: planned } = timerState;
+    const tick = () => {
+      const rem = remainingCountdownSeconds(startedAt, planned);
+      setRemainingSeconds(rem);
+      setElapsedSeconds(planned - rem);
+    };
+    tick();
+    const id = setInterval(tick, TICK_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [timerState.status, timerState.startedAt, timerState.plannedDurationSeconds]);
 
   useEffect(() => {
     if (timerState.status !== 'overtime') return;
@@ -285,7 +316,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const elapsed =
       timerState.status === 'overtime'
         ? computeElapsedFromTimestamps()
-        : timerState.plannedDurationSeconds - timer.totalSeconds;
+        : timerState.startedAt != null
+          ? elapsedRunningWallSeconds(
+              timerState.startedAt,
+              timerState.plannedDurationSeconds
+            )
+          : timerState.plannedDurationSeconds - timer.totalSeconds;
     const next: TimerState = {
       ...timerState,
       status: 'paused',
@@ -337,7 +373,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ? computeElapsedFromTimestamps()
           : isPausedOvertime
             ? timerState.elapsedSeconds
-            : timerState.plannedDurationSeconds - timer.totalSeconds;
+            : timerState.startedAt != null
+              ? elapsedRunningWallSeconds(
+                  timerState.startedAt,
+                  timerState.plannedDurationSeconds
+                )
+              : timerState.plannedDurationSeconds - timer.totalSeconds;
       const planned = timerState.plannedDurationSeconds;
       const recorded = recordOvertime ? elapsed : Math.min(elapsed, planned);
       const hadOvertime = elapsed > planned;
@@ -435,9 +476,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onFinish: (recordOvertime) => finishCycleRef.current(recordOvertime),
     });
     const sub = setupNotificationResponseListener();
+    const subIosOpen = setupIOSTimerNotificationOpenListener();
     return () => {
       setTimerNotificationHandlers(null);
       sub();
+      subIosOpen();
     };
   }, []);
 
@@ -478,8 +521,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const nowSec = Date.now() / 1000;
       const elapsed = elapsedLiveSec(nowSec);
       const overtime = started != null ? Math.max(0, elapsed - planned) : 0;
-      const remainingPlanned = Math.max(0, planned - elapsed);
       const activeOvertime = isOvertimeNotify(nowSec);
+      const remainingPlanned =
+        started != null &&
+        timerState.status === 'running' &&
+        !activeOvertime
+          ? remainingCountdownSeconds(started, planned)
+          : Math.max(0, planned - elapsed);
 
       showTimerNotification({
         cycleLabel: getCycleLabel(timerState.cycleType),
@@ -495,11 +543,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     pushNotification();
 
-    // Running / overtime: refresh every second so the title can show “MM:SS Remaining” (+…) without
-    // Android’s chronometer (which stays on the right). Paused uses static text only.
+    // Running / overtime: refresh at TICK_INTERVAL_MS so notification stays aligned with in-app timer.
     const needsLiveTicker =
       timerState.status === 'running' || timerState.status === 'overtime';
-    const liveTicker = needsLiveTicker ? setInterval(pushNotification, 1000) : undefined;
+    const liveTicker = needsLiveTicker
+      ? setInterval(pushNotification, TICK_INTERVAL_MS)
+      : undefined;
 
     return () => {
       if (liveTicker) clearInterval(liveTicker);

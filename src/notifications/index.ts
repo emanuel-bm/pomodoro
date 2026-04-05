@@ -140,6 +140,8 @@ export async function showTimerNotification(params: {
           ongoing: true,
           autoCancel: false,
           onlyAlertOnce: true,
+          // Required on Android for body tap to open the app / emit EventType.PRESS.
+          pressAction: { id: 'default' },
           actions,
           color: '#e94560',
         },
@@ -179,6 +181,10 @@ export async function dismissTimerNotification() {
   } catch (_) {}
 }
 
+function openAppFromNotification() {
+  Linking.openURL('pomodoro://');
+}
+
 function handleActionPress(
   actionId: string,
   data: { isOvertime?: string; isPaused?: string }
@@ -194,7 +200,7 @@ function handleActionPress(
       break;
     case 'finish':
       if (isOvertime) {
-        Linking.openURL('pomodoro://');
+        openAppFromNotification();
       } else if (handlers?.onFinish) {
         handlers.onFinish(false);
       }
@@ -204,6 +210,10 @@ function handleActionPress(
 
 export function setupNotificationResponseListener() {
   return notifee.onForegroundEvent(({ type, detail }) => {
+    if (type === EventType.PRESS) {
+      openAppFromNotification();
+      return;
+    }
     if (type === EventType.ACTION_PRESS && detail.pressAction?.id) {
       const data = (detail.notification?.data ?? {}) as Record<string, string>;
       handleActionPress(detail.pressAction.id, data);
@@ -213,9 +223,27 @@ export function setupNotificationResponseListener() {
 
 export function setupBackgroundEventHandler() {
   notifee.onBackgroundEvent(async ({ type, detail }) => {
+    if (type === EventType.PRESS) {
+      openAppFromNotification();
+      return;
+    }
     if (type === EventType.ACTION_PRESS && detail.pressAction?.id) {
       const data = (detail.notification?.data ?? {}) as Record<string, string>;
       handleActionPress(detail.pressAction.id, data);
     }
   });
+}
+
+/** iOS: timer notification uses expo-notifications; body tap should open the app like Android. */
+export function setupIOSTimerNotificationOpenListener(): () => void {
+  if (Platform.OS !== 'ios') {
+    return () => {};
+  }
+  const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    if (response.notification.request.identifier !== TIMER_NOTIFICATION_ID) return;
+    if (response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+      openAppFromNotification();
+    }
+  });
+  return () => subscription.remove();
 }
