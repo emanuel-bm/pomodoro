@@ -6,7 +6,16 @@ import type { HistoryEntry } from '@/types';
 import { getCycleLabel } from '@/cycleLogic';
 import { styles } from '@/screens/HistoryScreen/styles';
 
-function formatDuration(seconds: number): string {
+/** Today summary totals: HH:MM (minutes rounded from seconds). */
+function formatDaySummaryDuration(seconds: number): string {
+  const totalMinutes = Math.max(0, Math.round(seconds / 60));
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** Per-entry planned / recorded / overtime (full minutes and seconds when needed). */
+function formatEntryDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   if (s === 0) return `${m} min`;
@@ -49,14 +58,14 @@ function HistoryItem({
         </TouchableOpacity>
       </View>
       <Text style={styles.detail}>
-        Planned: {formatDuration(entry.plannedDurationSeconds)}
+        Planned: {formatEntryDuration(entry.plannedDurationSeconds)}
       </Text>
       <Text style={styles.detail}>
-        Recorded: {formatDuration(entry.recordedDurationSeconds)}
+        Recorded: {formatEntryDuration(entry.recordedDurationSeconds)}
       </Text>
       {entry.hadOvertime && (
         <Text style={styles.overtime}>
-          Overtime: +{formatDuration(overtime)}
+          Overtime: +{formatEntryDuration(overtime)}
         </Text>
       )}
       <Text style={styles.time}>
@@ -120,10 +129,10 @@ export default function HistoryScreen() {
       <View style={styles.summary}>
         <Text style={styles.summaryTitle}>Today</Text>
         <Text style={styles.summaryText}>
-          Focus: {todayFocus.length} cycles, {formatDuration(focusSecondsToday)}
+          Focus: {todayFocus.length} cycles, {formatDaySummaryDuration(focusSecondsToday)}
         </Text>
         <Text style={styles.summaryText}>
-          Breaks: {todayBreaks.length} cycles, {formatDuration(breakSecondsToday)}
+          Breaks: {todayBreaks.length} cycles, {formatDaySummaryDuration(breakSecondsToday)}
         </Text>
       </View>
 

@@ -441,24 +441,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const notificationStateRef = useRef({
-    status: timerState.status,
-    cycleType: timerState.cycleType,
-    plannedDurationSeconds: timerState.plannedDurationSeconds,
-    startedAt: null as number | null,
-    elapsedSeconds: 0,
-    remainingSeconds: 0,
-    isOvertime: false,
-  });
-  notificationStateRef.current = {
-    status: timerState.status,
-    cycleType: timerState.cycleType,
-    plannedDurationSeconds: timerState.plannedDurationSeconds,
-    startedAt: timerState.startedAt,
-    elapsedSeconds,
-    remainingSeconds,
-    isOvertime,
-  };
+  useEffect(() => () => {
+    dismissTimerNotification();
+  }, []);
 
   useEffect(() => {
     const isActive =
@@ -470,40 +455,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const s = notificationStateRef.current;
-    const overtimeAmount = s.isOvertime
-      ? s.elapsedSeconds - s.plannedDurationSeconds
-      : 0;
-    const remainingDisplay = s.isOvertime ? overtimeAmount : s.remainingSeconds;
+    const { plannedDurationSeconds: planned, startedAt: started } = timerState;
 
-    // Android uses native chronometer for live countdown — no polling needed.
-    // Pass timestamp so the system updates the display automatically.
-    let countdownEndTimestamp: number | undefined;
-    let overtimeStartTimestamp: number | undefined;
+    const elapsedLiveSec = (nowSec: number) => {
+      if (started == null) return 0;
+      if (timerState.status === 'running' || timerState.status === 'overtime') {
+        return Math.floor(nowSec - started);
+      }
+      return timerState.elapsedSeconds;
+    };
 
-    if (s.status === 'paused') {
-      // No chronometer when paused — static text
-    } else if (s.isOvertime && s.startedAt != null) {
-      overtimeStartTimestamp =
-        (s.startedAt + s.plannedDurationSeconds) * 1000;
-    } else {
-      countdownEndTimestamp = Date.now() + remainingDisplay * 1000;
-    }
+    const isOvertimeNotify = (nowSec: number) => {
+      const elapsed = elapsedLiveSec(nowSec);
+      return (
+        timerState.status === 'overtime' ||
+        (timerState.status === 'paused' && timerState.elapsedSeconds >= planned) ||
+        (timerState.status === 'running' && elapsed >= planned)
+      );
+    };
 
-    showTimerNotification({
-      cycleLabel: getCycleLabel(s.cycleType),
-      remainingSeconds: remainingDisplay,
-      isOvertime: s.isOvertime,
-      isPaused: s.status === 'paused',
-      countdownEndTimestamp,
-      overtimeStartTimestamp,
-    }).catch((e) => console.warn('[Notification] update failed:', e));
+    const pushNotification = () => {
+      const nowSec = Date.now() / 1000;
+      const elapsed = elapsedLiveSec(nowSec);
+      const overtime = started != null ? Math.max(0, elapsed - planned) : 0;
+      const remainingPlanned = Math.max(0, planned - elapsed);
+      const activeOvertime = isOvertimeNotify(nowSec);
+
+      showTimerNotification({
+        cycleLabel: getCycleLabel(timerState.cycleType),
+        isPaused: timerState.status === 'paused',
+        isOvertime: activeOvertime,
+        remainingSeconds:
+          timerState.status === 'paused' && !activeOvertime
+            ? Math.max(0, planned - timerState.elapsedSeconds)
+            : remainingPlanned,
+        overtimeElapsedSeconds: overtime,
+      }).catch((e) => console.warn('[Notification] update failed:', e));
+    };
+
+    pushNotification();
+
+    // Running / overtime: refresh every second so the title can show “MM:SS Remaining” (+…) without
+    // Android’s chronometer (which stays on the right). Paused uses static text only.
+    const needsLiveTicker =
+      timerState.status === 'running' || timerState.status === 'overtime';
+    const liveTicker = needsLiveTicker ? setInterval(pushNotification, 1000) : undefined;
 
     return () => {
-      dismissTimerNotification();
+      if (liveTicker) clearInterval(liveTicker);
     };
-    // Only re-run when state that affects the notification changes.
-    // Chronometer updates live on Android — no need for elapsed/remaining in deps.
   }, [
     timerState.status,
     timerState.startedAt,

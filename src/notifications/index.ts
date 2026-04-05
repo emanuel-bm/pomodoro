@@ -17,10 +17,20 @@ export function setTimerNotificationHandlers(h: TimerNotificationHandlers | null
   handlers = h;
 }
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(Math.max(0, seconds) / 60);
-  const s = Math.max(0, seconds) % 60;
+/** MM:SS within a phase (countdown remaining). */
+function formatClock(seconds: number): string {
+  const sec = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+/** +MM:SS past planned end. */
+function formatOvertime(seconds: number): string {
+  const sec = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `+${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 let channelCreated = false;
@@ -54,50 +64,44 @@ export async function initNotifications() {
 
 export async function showTimerNotification(params: {
   cycleLabel: string;
-  remainingSeconds: number;
-  isOvertime: boolean;
   isPaused: boolean;
-  /** When countdown reaches zero (ms). Used for live chronometer when running. */
-  countdownEndTimestamp?: number;
-  /** When overtime started (ms). Used for live chronometer when in overtime. */
-  overtimeStartTimestamp?: number;
+  /** Includes running past planned before status flips to overtime. */
+  isOvertime: boolean;
+  /** Remaining seconds in planned phase (running + paused normal countdown). */
+  remainingSeconds: number;
+  /** Seconds past planned end. */
+  overtimeElapsedSeconds: number;
 }) {
   try {
     await ensureChannel();
 
     const {
       cycleLabel,
-      remainingSeconds,
-      isOvertime,
       isPaused,
-      countdownEndTimestamp,
-      overtimeStartTimestamp,
+      isOvertime,
+      remainingSeconds,
+      overtimeElapsedSeconds,
     } = params;
 
+    // Stopwatch-style: title = cycle + phase (stable); body = clock (updates each second).
+    // No BIGTEXT style — expanded view stays the same template (title + body) plus system chrome & actions.
     let title: string;
     let body: string;
-    let showChronometer = false;
-    let chronometerDirection: 'up' | 'down' = 'down';
-    let timestamp: number | undefined;
 
-    if (isPaused) {
-      title = `${cycleLabel} — Paused`;
-      body = `${formatTime(remainingSeconds)} remaining`;
-    } else if (isOvertime && overtimeStartTimestamp != null) {
-      title = `${cycleLabel} — Overtime`;
-      body = 'Past planned time';
-      showChronometer = true;
-      chronometerDirection = 'up';
-      timestamp = overtimeStartTimestamp;
-    } else if (!isPaused && countdownEndTimestamp != null) {
-      title = cycleLabel;
-      body = 'Remaining';
-      showChronometer = true;
-      chronometerDirection = 'down';
-      timestamp = countdownEndTimestamp;
+    if (isOvertime) {
+      title = `${cycleLabel} · Overtime`;
+      if (isPaused) {
+        body = `${formatOvertime(overtimeElapsedSeconds)} · Paused`;
+      } else {
+        body = formatOvertime(overtimeElapsedSeconds);
+      }
     } else {
-      title = cycleLabel;
-      body = `${formatTime(remainingSeconds)} remaining`;
+      title = `${cycleLabel} · Remaining`;
+      if (isPaused) {
+        body = `${formatClock(remainingSeconds)} · Paused`;
+      } else {
+        body = formatClock(remainingSeconds);
+      }
     }
 
     const actions = isPaused
@@ -135,22 +139,20 @@ export async function showTimerNotification(params: {
           channelId: CHANNEL_ID,
           ongoing: true,
           autoCancel: false,
-          showChronometer,
-          chronometerDirection,
-          timestamp,
+          onlyAlertOnce: true,
           actions,
           color: '#e94560',
         },
       });
     } else {
-      // iOS fallback — expo-notifications (no chronometer)
       Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldPlaySound: false,
-          shouldSetBadge: false,
-          shouldShowBanner: true,
-          shouldShowList: true,
-        } as any),
+        handleNotification: async () =>
+          ({
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+          }) as any,
       });
       await Notifications.scheduleNotificationAsync({
         identifier: TIMER_NOTIFICATION_ID,
@@ -192,7 +194,6 @@ function handleActionPress(
       break;
     case 'finish':
       if (isOvertime) {
-        // Open app so user can choose how to record (planned only vs with overtime)
         Linking.openURL('pomodoro://');
       } else if (handlers?.onFinish) {
         handlers.onFinish(false);
@@ -210,7 +211,6 @@ export function setupNotificationResponseListener() {
   });
 }
 
-// Must be called from app entry point for background/killed app actions
 export function setupBackgroundEventHandler() {
   notifee.onBackgroundEvent(async ({ type, detail }) => {
     if (type === EventType.ACTION_PRESS && detail.pressAction?.id) {
