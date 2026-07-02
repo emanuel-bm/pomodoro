@@ -57,6 +57,28 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#e94560',
   },
+  editText: {
+    fontSize: 14,
+    color: '#4a90d9',
+    marginRight: 16,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  manualEntryButton: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  manualEntryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4a90d9',
+  },
   detail: {
     fontSize: 14,
     color: '#a0a0a0',

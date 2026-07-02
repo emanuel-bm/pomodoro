@@ -13,6 +13,7 @@
       "package": "com.pomodoro.app"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-asset",
       "expo-audio",
       [
@@ -25,10 +26,13 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": ["../../node_modules/@notifee/react-native/android/libs"]
+            "extraMavenRepos": [
+              "../../node_modules/@notifee/react-native/android/libs"
+            ]
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "bundleIdentifier": "com.pomodoro.app"

@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useApp } from '@/context/AppContext';
 import { useAlert } from '@/components/Alert';
+import { TimeEntryModal } from '@/components/TimeEntryModal';
 import type { HistoryEntry } from '@/types';
 import { getCycleLabel } from '@/cycleLogic';
 import { styles } from '@/screens/HistoryScreen/styles';
@@ -39,9 +40,11 @@ function formatDate(dateStr: string): string {
 
 function HistoryItem({
   entry,
+  onEdit,
   onDelete,
 }: {
   entry: HistoryEntry;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const label = getCycleLabel(entry.cycleType);
@@ -53,9 +56,14 @@ function HistoryItem({
     <View style={styles.item}>
       <View style={styles.itemHeader}>
         <Text style={styles.cycleType}>{label}</Text>
-        <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
+        <View style={styles.itemActions}>
+          <TouchableOpacity onPress={onEdit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.editText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.deleteText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <Text style={styles.detail}>
         Planned: {formatEntryDuration(entry.plannedDurationSeconds)}
@@ -76,8 +84,13 @@ function HistoryItem({
 }
 
 export default function HistoryScreen() {
-  const { history, deleteHistoryItem, refreshHistory } = useApp();
+  const { history, settings, deleteHistoryItem, addManualHistoryEntry, updateHistoryItem, refreshHistory } = useApp();
   const { alert } = useAlert();
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    mode: 'create' | 'edit';
+    entry?: HistoryEntry;
+  }>({ visible: false, mode: 'create' });
 
   useEffect(() => {
     refreshHistory();
@@ -124,6 +137,19 @@ export default function HistoryScreen() {
     });
   };
 
+  const openCreateModal = () => setModal({ visible: true, mode: 'create' });
+  const openEditModal = (entry: HistoryEntry) => setModal({ visible: true, mode: 'edit', entry });
+  const closeModal = () => setModal((m) => ({ ...m, visible: false }));
+
+  const handleModalSave = (entry: HistoryEntry, isNew: boolean) => {
+    if (isNew) {
+      addManualHistoryEntry(entry);
+    } else {
+      updateHistoryItem(entry);
+    }
+    closeModal();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.summary}>
@@ -136,6 +162,10 @@ export default function HistoryScreen() {
         </Text>
       </View>
 
+      <TouchableOpacity style={styles.manualEntryButton} onPress={openCreateModal}>
+        <Text style={styles.manualEntryButtonText}>Registrar tempo manualmente</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={sections}
         keyExtractor={([date]) => date}
@@ -146,6 +176,7 @@ export default function HistoryScreen() {
               <HistoryItem
                 key={entry.id}
                 entry={entry}
+                onEdit={() => openEditModal(entry)}
                 onDelete={() => handleDelete(entry.id)}
               />
             ))}
@@ -155,6 +186,15 @@ export default function HistoryScreen() {
         ListEmptyComponent={
           <Text style={styles.empty}>No sessions yet</Text>
         }
+      />
+
+      <TimeEntryModal
+        visible={modal.visible}
+        mode={modal.mode}
+        initialEntry={modal.entry}
+        settings={settings}
+        onSave={handleModalSave}
+        onClose={closeModal}
       />
     </View>
   );

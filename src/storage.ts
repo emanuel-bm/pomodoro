@@ -59,6 +59,13 @@ export async function deleteHistoryEntry(id: string): Promise<void> {
   await saveHistory(filtered);
 }
 
+export async function updateHistoryEntry(entry: HistoryEntry): Promise<void> {
+  const history = await loadHistory();
+  const idx = history.findIndex((e) => e.id === entry.id);
+  if (idx !== -1) history[idx] = entry;
+  await saveHistory(history);
+}
+
 export interface PersistedTimerState {
   cycleType: string;
   status: string;

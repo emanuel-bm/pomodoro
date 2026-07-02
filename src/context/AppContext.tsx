@@ -22,6 +22,7 @@ import {
   clearTimerState,
   addHistoryEntry,
   deleteHistoryEntry,
+  updateHistoryEntry,
 } from '@/storage';
 import {
   getNextCycleType,
@@ -50,6 +51,8 @@ interface AppContextValue {
   resetCycle: () => void;
   finishCycle: (recordOvertime: boolean) => void;
   deleteHistoryItem: (id: string) => Promise<void>;
+  addManualHistoryEntry: (entry: HistoryEntry) => Promise<void>;
+  updateHistoryItem: (entry: HistoryEntry) => Promise<void>;
   refreshHistory: () => Promise<void>;
   elapsedSeconds: number;
   remainingSeconds: number;
@@ -456,6 +459,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setHistory((h) => h.filter((e) => e.id !== id));
   }, []);
 
+  const addManualHistoryEntry = useCallback(async (entry: HistoryEntry) => {
+    await addHistoryEntry(entry);
+    setHistory((h) => [entry, ...h]);
+  }, []);
+
+  const updateHistoryItem = useCallback(async (entry: HistoryEntry) => {
+    await updateHistoryEntry(entry);
+    setHistory((h) => h.map((e) => (e.id === entry.id ? entry : e)));
+  }, []);
+
   const refreshHistory = useCallback(async () => {
     const h = await loadHistory();
     setHistory(h);
@@ -571,6 +584,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     resetCycle,
     finishCycle,
     deleteHistoryItem,
+    addManualHistoryEntry,
+    updateHistoryItem,
     refreshHistory,
     elapsedSeconds,
     remainingSeconds,
