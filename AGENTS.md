@@ -1,5 +1,36 @@
 # Agent Guidelines
 
+## Running the App
+
+This project uses **native modules** (`@notifee/react-native`, `expo-notifications`, etc.) and **does not work in Expo Go**. Use a development build or a release build.
+
+### Development (hot reload)
+
+Requires Metro on the developer machine and the device on the same network.
+
+```bash
+bun install
+bun run android          # first time: build + install dev client
+bun run start            # start Metro (--dev-client)
+```
+
+Open the **Pomodoro** app on the device (not Expo Go).
+
+### Standalone release (no Metro)
+
+```bash
+bun run build:android    # outputs android/app/build/outputs/apk/release/app-release.apk
+bun run install:android  # install via ADB (USB or Wi‑Fi; see README)
+```
+
+Release builds bundle JS in the APK and work offline. Debug/dev builds require Metro.
+
+### ADB over Wi‑Fi
+
+Install and run commands work over **wireless debugging** when the phone appears in `adb devices -l` with `_adb-tls-connect._tcp`. Pair once with `adb pair`, then reconnect with `adb connect`. Full steps in [README.md](./README.md#connect-android-device-via-wi-fi-adb).
+
+---
+
 ## Path Aliases
 
 - **Use** the `@/` alias for all imports from `src/`.

@@ -526,3 +526,17 @@ Phase 3
 Notifications
 Sound and vibration
 Background behavior
+
+---
+
+# 11. Development and Build
+
+See [README.md](./README.md) for full setup instructions.
+
+### Platform notes
+
+- **Package manager**: bun (`bun install`, `bun run start`, etc.)
+- **Not compatible with Expo Go** — native modules require a custom build
+- **Development**: `bun run android` (first time) + `bun run start` — requires Metro and same Wi‑Fi network
+- **Standalone use**: `bun run build:android` → install `android/app/build/outputs/apk/release/app-release.apk` on the device
+- **ADB over Wi‑Fi**: Android wireless debugging works for install/run commands; see README § Connect Android device via Wi‑Fi
